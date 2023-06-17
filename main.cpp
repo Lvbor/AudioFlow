@@ -29,7 +29,7 @@ int main(int argc, char *argv[])
         return 1;
     }
 
-    SDL_Window *window = SDL_CreateWindow("SDL", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, WIDTH, HEIGHT, SDL_WINDOW_SHOWN);
+    SDL_Window *window = SDL_CreateWindow("AudioFlow", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, WIDTH, HEIGHT, SDL_WINDOW_SHOWN);
     if (window == nullptr)
     {
         std::cout << "Could not create window: " << SDL_GetError() << std::endl;
@@ -125,7 +125,9 @@ int main(int argc, char *argv[])
 
     bool quit = false;
     bool isMusicPlaying = false;
+    bool isMusicPaused = false;
     int startTime = 0;
+    int pauseTime = 0;
 
     Mix_Music *music = nullptr; // Declare music variable
     int musicDuration = 0;      // Declare musicDuration variable
@@ -188,8 +190,34 @@ int main(int argc, char *argv[])
                         SDL_free((void *)filepath);
                     }
                 }
+
+                SDL_Rect pauseButtonRect = {(WIDTH - 200) / 2, (HEIGHT - 250), 200, 50};
+                if (isPointInRect(mouseX, mouseY, pauseButtonRect))
+                {
+                    if (isMusicPlaying)
+                    {
+                        if (isMusicPaused)
+                        {
+                            // Resume the music
+                            Mix_ResumeMusic();
+                            isMusicPaused = false;
+
+                            // Update the start time by subtracting the paused time
+                            startTime += (SDL_GetTicks() / 1000 - pauseTime);
+                        }
+                        else
+                        {
+                            // Pause the music
+                            Mix_PauseMusic();
+                            isMusicPaused = true;
+
+                            // Store the current time as the paused time
+                            pauseTime = SDL_GetTicks() / 1000;
+                        }
+                    }
+                }
                 // Check if the mouse click is inside the volume slider area
-                SDL_Rect volumeSliderRect = {(WIDTH - 200) / 2, HEIGHT - 250, 200, 20};
+                SDL_Rect volumeSliderRect = {(WIDTH - 200) / 2, HEIGHT - 350, 200, 20};
                 if (isPointInRect(mouseX, mouseY, volumeSliderRect))
                 {
                     // Calculate the new volume based on the mouse position within the slider
@@ -228,7 +256,7 @@ int main(int argc, char *argv[])
         SDL_DestroyTexture(textTexture);
 
         // Render the volume slider
-        SDL_Rect volumeSliderRect = {(WIDTH - 200) / 2, HEIGHT - 250, 200, 30};
+        SDL_Rect volumeSliderRect = {(WIDTH - 200) / 2, HEIGHT - 350, 200, 30};
         SDL_SetRenderDrawColor(renderer, 128, 0, 128, 255); // Purple color
         SDL_RenderFillRect(renderer, &volumeSliderRect);
 
@@ -250,8 +278,26 @@ int main(int argc, char *argv[])
         SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255); // White color
         SDL_RenderFillRect(renderer, &volumeSliderHandleRect);
 
+        // Render the pause/resume button
+        SDL_Rect pauseButtonRect = {(WIDTH - 200) / 2, (HEIGHT - 250), 200, 50};
+        SDL_SetRenderDrawColor(renderer, 128, 0, 128, 255); // Purple color
+        SDL_RenderFillRect(renderer, &pauseButtonRect);
+
+        // Render the text on the pause/resume button
+        std::string pauseButtonText = isMusicPaused ? "Resume" : "Pause";
+        SDL_Surface *pauseButtonSurface = TTF_RenderText_Solid(font, pauseButtonText.c_str(), textColor);
+        SDL_Texture *pauseButtonTexture = SDL_CreateTextureFromSurface(renderer, pauseButtonSurface);
+        int pauseButtonWidth = pauseButtonSurface->w;
+        int pauseButtonHeight = pauseButtonSurface->h;
+        int pauseButtonX = pauseButtonRect.x + (pauseButtonRect.w - pauseButtonWidth) / 2;  // Center horizontally
+        int pauseButtonY = pauseButtonRect.y + (pauseButtonRect.h - pauseButtonHeight) / 2; // Center vertically
+        SDL_Rect pauseButtonRenderRect = {pauseButtonX, pauseButtonY, pauseButtonWidth, pauseButtonHeight};
+        SDL_RenderCopy(renderer, pauseButtonTexture, NULL, &pauseButtonRenderRect);
+        SDL_FreeSurface(pauseButtonSurface);
+        SDL_DestroyTexture(pauseButtonTexture);
+
         // Render the music progress
-        if (isMusicPlaying && Mix_PlayingMusic())
+        if (isMusicPlaying && Mix_PlayingMusic() && !isMusicPaused)
         {
             int currentTime = SDL_GetTicks() / 1000 - startTime;
             std::string progressText = "Time: " + formatTime(currentTime) + " / " + formatTime(musicDuration);
