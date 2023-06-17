@@ -2,6 +2,7 @@
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_mixer.h>
 #include <SDL2/SDL_ttf.h>
+#include <SDL2/SDL_image.h> // Include the SDL2_image header
 #include <cstdlib>
 #include <string>
 #include <Tiny_File_Dialogs/tinyfiledialogs.h>
@@ -68,15 +69,50 @@ int main(int argc, char *argv[])
         return 1;
     }
 
-    // Load the music file
-    Mix_Music *music = nullptr;
-    int musicDuration = 0; // Variable to store the duration of the music file
+    // Initialize SDL2_image
+    if ((IMG_Init(IMG_INIT_PNG) & IMG_INIT_PNG) != IMG_INIT_PNG)
+    {
+        std::cout << "SDL2_image could not initialize: " << IMG_GetError() << std::endl;
+        SDL_DestroyRenderer(renderer);
+        SDL_DestroyWindow(window);
+        Mix_CloseAudio();
+        TTF_Quit();
+        SDL_Quit();
+        return 1;
+    }
+
+    // Load the background image
+    SDL_Surface *backgroundSurface = IMG_Load("background.png");
+    if (backgroundSurface == nullptr)
+    {
+        std::cout << "Failed to load background image: " << IMG_GetError() << std::endl;
+        SDL_DestroyRenderer(renderer);
+        SDL_DestroyWindow(window);
+        Mix_CloseAudio();
+        TTF_Quit();
+        SDL_Quit();
+        return 1;
+    }
+
+    SDL_Texture *backgroundTexture = SDL_CreateTextureFromSurface(renderer, backgroundSurface);
+    SDL_FreeSurface(backgroundSurface);
+    if (backgroundTexture == nullptr)
+    {
+        std::cout << "Failed to create background texture: " << SDL_GetError() << std::endl;
+        SDL_DestroyRenderer(renderer);
+        SDL_DestroyWindow(window);
+        Mix_CloseAudio();
+        TTF_Quit();
+        SDL_Quit();
+        return 1;
+    }
 
     // Load the font
     TTF_Font *font = TTF_OpenFont("font.ttf", 24);
     if (font == nullptr)
     {
         std::cout << "Failed to load font: " << TTF_GetError() << std::endl;
+        SDL_DestroyTexture(backgroundTexture);
         SDL_DestroyRenderer(renderer);
         SDL_DestroyWindow(window);
         Mix_CloseAudio();
@@ -90,6 +126,10 @@ int main(int argc, char *argv[])
     bool quit = false;
     bool isMusicPlaying = false;
     int startTime = 0;
+
+    Mix_Music *music = nullptr; // Declare music variable
+    int musicDuration = 0;      // Declare musicDuration variable
+
     while (!quit)
     {
         while (SDL_PollEvent(&windowEvent))
@@ -166,6 +206,9 @@ int main(int argc, char *argv[])
         SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
         SDL_RenderClear(renderer);
 
+        // Render the background
+        SDL_RenderCopy(renderer, backgroundTexture, NULL, NULL);
+
         // Render the button
         SDL_Rect buttonRect = {(WIDTH - 200) / 2, HEIGHT - 150, 200, 50};
         SDL_SetRenderDrawColor(renderer, 128, 0, 128, 255); // Purple color
@@ -184,7 +227,7 @@ int main(int argc, char *argv[])
         SDL_FreeSurface(textSurface);
         SDL_DestroyTexture(textTexture);
 
-        /// Render the volume slider
+        // Render the volume slider
         SDL_Rect volumeSliderRect = {(WIDTH - 200) / 2, HEIGHT - 250, 200, 30};
         SDL_SetRenderDrawColor(renderer, 128, 0, 128, 255); // Purple color
         SDL_RenderFillRect(renderer, &volumeSliderRect);
@@ -217,8 +260,8 @@ int main(int argc, char *argv[])
             SDL_Texture *progressTexture = SDL_CreateTextureFromSurface(renderer, progressSurface);
             int progressWidth = progressSurface->w;
             int progressHeight = progressSurface->h;
-            int progressX = (WIDTH - progressWidth) / 2;
-            int progressY = 50;
+            int progressX = (WIDTH - progressWidth) / 2; // Center horizontally
+            int progressY = 50;                          // Position at the top
             SDL_Rect progressRect = {progressX, progressY, progressWidth, progressHeight};
             SDL_RenderCopy(renderer, progressTexture, NULL, &progressRect);
             SDL_FreeSurface(progressSurface);
@@ -229,17 +272,17 @@ int main(int argc, char *argv[])
     }
 
     // Clean up resources
+    SDL_DestroyTexture(backgroundTexture);
+    SDL_DestroyRenderer(renderer);
+    SDL_DestroyWindow(window);
     if (music != nullptr)
     {
         Mix_FreeMusic(music);
     }
-
+    Mix_CloseAudio();
     TTF_CloseFont(font);
     TTF_Quit();
-
-    Mix_CloseAudio();
-    SDL_DestroyRenderer(renderer);
-    SDL_DestroyWindow(window);
+    IMG_Quit();
     SDL_Quit();
 
     return 0;
