@@ -32,6 +32,33 @@ int main(int argc, char* argv[])
         return 1;
     }
 
+    
+    // Load the music file
+    Mix_Music* music = Mix_LoadMUS("music.mp3");
+    if (music == nullptr)
+    {
+        std::cout << "Failed to load music: " << Mix_GetError() << std::endl;
+        return 1;
+    }
+
+    // Play the music file
+    if (Mix_PlayMusic(music, -1) == -1)
+    {
+        std::cout << "Failed to play music: " << Mix_GetError() << std::endl;
+        return 1;
+    }
+
+    while (true)
+    {
+        if (SDL_PollEvent(&windowEvent))
+        {
+            if (SDL_QUIT == windowEvent.type)
+            {
+                break;
+            }
+        }
+    }
+
 
 
     while (true)
