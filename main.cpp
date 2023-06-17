@@ -8,7 +8,7 @@
 
 const int WIDTH = 1920, HEIGHT = 1080;
 
-bool isPointInRect(int x, int y, const SDL_Rect& rect)
+bool isPointInRect(int x, int y, const SDL_Rect &rect)
 {
     return (x >= rect.x && x <= rect.x + rect.w && y >= rect.y && y <= rect.y + rect.h);
 }
@@ -20,7 +20,7 @@ std::string formatTime(int seconds)
     return std::to_string(minutes) + ":" + (remainingSeconds < 10 ? "0" : "") + std::to_string(remainingSeconds);
 }
 
-int main(int argc, char* argv[])
+int main(int argc, char *argv[])
 {
     if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO) != 0)
     {
@@ -28,7 +28,7 @@ int main(int argc, char* argv[])
         return 1;
     }
 
-    SDL_Window* window = SDL_CreateWindow("SDL", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, WIDTH, HEIGHT, SDL_WINDOW_SHOWN);
+    SDL_Window *window = SDL_CreateWindow("SDL", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, WIDTH, HEIGHT, SDL_WINDOW_SHOWN);
     if (window == nullptr)
     {
         std::cout << "Could not create window: " << SDL_GetError() << std::endl;
@@ -36,7 +36,7 @@ int main(int argc, char* argv[])
         return 1;
     }
 
-    SDL_Renderer* renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED);
+    SDL_Renderer *renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED);
     if (renderer == nullptr)
     {
         std::cout << "Could not create renderer: " << SDL_GetError() << std::endl;
@@ -69,11 +69,11 @@ int main(int argc, char* argv[])
     }
 
     // Load the music file
-    Mix_Music* music = nullptr;
+    Mix_Music *music = nullptr;
     int musicDuration = 0; // Variable to store the duration of the music file
 
     // Load the font
-    TTF_Font* font = TTF_OpenFont("font.ttf", 24);
+    TTF_Font *font = TTF_OpenFont("font.ttf", 24);
     if (font == nullptr)
     {
         std::cout << "Failed to load font: " << TTF_GetError() << std::endl;
@@ -84,6 +84,8 @@ int main(int argc, char* argv[])
         SDL_Quit();
         return 1;
     }
+
+    int currentVolume = MIX_MAX_VOLUME / 2; // Set initial volume to half of the maximum volume
 
     bool quit = false;
     bool isMusicPlaying = false;
@@ -107,7 +109,7 @@ int main(int argc, char* argv[])
                 if (isPointInRect(mouseX, mouseY, buttonRect))
                 {
                     // Open file dialog to choose a music file
-                    const char* filepath = tinyfd_openFileDialog("Choose Music File", "", 0, nullptr, nullptr, 0);
+                    const char *filepath = tinyfd_openFileDialog("Choose Music File", "", 0, nullptr, nullptr, 0);
 
                     if (filepath != nullptr)
                     {
@@ -131,7 +133,7 @@ int main(int argc, char* argv[])
                             }
                             else
                             {
-                                if (Mix_PlayMusic(music, -1) == -1)
+                                if (Mix_PlayMusic(music, 0) == -1)
                                 {
                                     std::cout << "Failed to play music: " << Mix_GetError() << std::endl;
                                 }
@@ -143,8 +145,20 @@ int main(int argc, char* argv[])
                             }
                         }
 
-                        SDL_free((void*)filepath);
+                        SDL_free((void *)filepath);
                     }
+                }
+                // Check if the mouse click is inside the volume slider area
+                SDL_Rect volumeSliderRect = {(WIDTH - 200) / 2, HEIGHT - 250, 200, 20};
+                if (isPointInRect(mouseX, mouseY, volumeSliderRect))
+                {
+                    // Calculate the new volume based on the mouse position within the slider
+                    int sliderPosition = mouseX - volumeSliderRect.x;
+                    int sliderMaxPosition = volumeSliderRect.w;
+                    currentVolume = (sliderPosition * MIX_MAX_VOLUME) / sliderMaxPosition;
+
+                    // Set the new volume
+                    Mix_VolumeMusic(currentVolume);
                 }
             }
         }
@@ -158,63 +172,75 @@ int main(int argc, char* argv[])
         SDL_RenderFillRect(renderer, &buttonRect);
 
         // Render the text
-        SDL_Color textColor = { 255, 255, 255, 255 }; // White color
-        SDL_Surface* textSurface = TTF_RenderText_Solid(font, "Choose file", textColor);
-        SDL_Texture* textTexture = SDL_CreateTextureFromSurface(renderer, textSurface);
+        SDL_Color textColor = {255, 255, 255, 255}; // White color
+        SDL_Surface *textSurface = TTF_RenderText_Solid(font, "Choose file", textColor);
+        SDL_Texture *textTexture = SDL_CreateTextureFromSurface(renderer, textSurface);
         int textWidth = textSurface->w;
         int textHeight = textSurface->h;
         int textX = buttonRect.x + (buttonRect.w - textWidth) / 2;  // Center horizontally
         int textY = buttonRect.y + (buttonRect.h - textHeight) / 2; // Center vertically
-        SDL_Rect textRect = { textX, textY, textWidth, textHeight };
+        SDL_Rect textRect = {textX, textY, textWidth, textHeight};
         SDL_RenderCopy(renderer, textTexture, NULL, &textRect);
         SDL_FreeSurface(textSurface);
         SDL_DestroyTexture(textTexture);
 
-        if (isMusicPlaying && music != nullptr)
+        /// Render the volume slider
+        SDL_Rect volumeSliderRect = {(WIDTH - 200) / 2, HEIGHT - 250, 200, 30};
+        SDL_SetRenderDrawColor(renderer, 128, 0, 128, 255); // Purple color
+        SDL_RenderFillRect(renderer, &volumeSliderRect);
+
+        // Render the volume text
+        SDL_Surface *volumeSurface = TTF_RenderText_Solid(font, "Volume", textColor);
+        SDL_Texture *volumeTexture = SDL_CreateTextureFromSurface(renderer, volumeSurface);
+        int volumeWidth = volumeSurface->w;
+        int volumeHeight = volumeSurface->h;
+        int volumeX = volumeSliderRect.x - volumeWidth - 10;                        // Position the text to the left of the slider with a margin of 10 pixels
+        int volumeY = volumeSliderRect.y + (volumeSliderRect.h - volumeHeight) / 2; // Center the text vertically
+        SDL_Rect volumeRect = {volumeX, volumeY, volumeWidth, volumeHeight};
+        SDL_RenderCopy(renderer, volumeTexture, NULL, &volumeRect);
+        SDL_FreeSurface(volumeSurface);
+        SDL_DestroyTexture(volumeTexture);
+
+        // Calculate the position of the volume slider handle
+        int sliderPosition = (currentVolume * volumeSliderRect.w) / MIX_MAX_VOLUME;
+        SDL_Rect volumeSliderHandleRect = {volumeSliderRect.x + sliderPosition - 5, volumeSliderRect.y - 5, 10, 40};
+        SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255); // White color
+        SDL_RenderFillRect(renderer, &volumeSliderHandleRect);
+
+        // Render the music progress
+        if (isMusicPlaying && Mix_PlayingMusic())
         {
-            int currentTime = SDL_GetTicks() / 1000;
-            int elapsedSeconds = currentTime - startTime;
-            std::string timeText = formatTime(elapsedSeconds);
+            int currentTime = SDL_GetTicks() / 1000 - startTime;
+            std::string progressText = "Time: " + formatTime(currentTime) + " / " + formatTime(musicDuration);
 
-            SDL_Surface* timeSurface = TTF_RenderText_Solid(font, timeText.c_str(), textColor);
-            SDL_Texture* timeTexture = SDL_CreateTextureFromSurface(renderer, timeSurface);
-            int timeWidth = timeSurface->w;
-            int timeHeight = timeSurface->h;
-            int timeX = (WIDTH - timeWidth) / 2;    // Center horizontally
-            int timeY = (HEIGHT - timeHeight) / 2;  // Center vertically
-            SDL_Rect timeRect = { timeX, timeY, timeWidth, timeHeight };
-            SDL_RenderCopy(renderer, timeTexture, NULL, &timeRect);
-            SDL_FreeSurface(timeSurface);
-            SDL_DestroyTexture(timeTexture);
-
-            // Render the duration text
-            std::string durationText = formatTime(musicDuration);
-            SDL_Surface* durationSurface = TTF_RenderText_Solid(font, durationText.c_str(), textColor);
-            SDL_Texture* durationTexture = SDL_CreateTextureFromSurface(renderer, durationSurface);
-            int durationWidth = durationSurface->w;
-            int durationHeight = durationSurface->h;
-            int durationX = (WIDTH - durationWidth) / 2;    // Center horizontally
-            int durationY = (HEIGHT - durationHeight) / 2 + 50;  // Below the time text
-            SDL_Rect durationRect = { durationX, durationY, durationWidth, durationHeight };
-            SDL_RenderCopy(renderer, durationTexture, NULL, &durationRect);
-            SDL_FreeSurface(durationSurface);
-            SDL_DestroyTexture(durationTexture);
+            SDL_Surface *progressSurface = TTF_RenderText_Solid(font, progressText.c_str(), textColor);
+            SDL_Texture *progressTexture = SDL_CreateTextureFromSurface(renderer, progressSurface);
+            int progressWidth = progressSurface->w;
+            int progressHeight = progressSurface->h;
+            int progressX = (WIDTH - progressWidth) / 2;
+            int progressY = 50;
+            SDL_Rect progressRect = {progressX, progressY, progressWidth, progressHeight};
+            SDL_RenderCopy(renderer, progressTexture, NULL, &progressRect);
+            SDL_FreeSurface(progressSurface);
+            SDL_DestroyTexture(progressTexture);
         }
 
         SDL_RenderPresent(renderer);
     }
 
-    // Cleanup
+    // Clean up resources
     if (music != nullptr)
     {
         Mix_FreeMusic(music);
     }
-    SDL_DestroyRenderer(renderer);
-    SDL_DestroyWindow(window);
-    Mix_CloseAudio();
+
     TTF_CloseFont(font);
     TTF_Quit();
+
+    Mix_CloseAudio();
+    SDL_DestroyRenderer(renderer);
+    SDL_DestroyWindow(window);
     SDL_Quit();
 
-    return EXIT_SUCCESS;
+    return 0;
 }
