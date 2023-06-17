@@ -70,6 +70,7 @@ int main(int argc, char* argv[])
 
     // Load the music file
     Mix_Music* music = nullptr;
+    int musicDuration = 0; // Variable to store the duration of the music file
 
     // Load the font
     TTF_Font* font = TTF_OpenFont("font.ttf", 24);
@@ -123,14 +124,22 @@ int main(int argc, char* argv[])
                         }
                         else
                         {
-                            if (Mix_PlayMusic(music, -1) == -1)
+                            musicDuration = Mix_MusicDuration(music); // Get the duration of the music file
+                            if (musicDuration <= 0)
                             {
-                                std::cout << "Failed to play music: " << Mix_GetError() << std::endl;
+                                std::cout << "Failed to get music duration: " << Mix_GetError() << std::endl;
                             }
                             else
                             {
-                                isMusicPlaying = true;
-                                startTime = SDL_GetTicks() / 1000;
+                                if (Mix_PlayMusic(music, -1) == -1)
+                                {
+                                    std::cout << "Failed to play music: " << Mix_GetError() << std::endl;
+                                }
+                                else
+                                {
+                                    isMusicPlaying = true;
+                                    startTime = SDL_GetTicks() / 1000;
+                                }
                             }
                         }
 
@@ -177,6 +186,19 @@ int main(int argc, char* argv[])
             SDL_RenderCopy(renderer, timeTexture, NULL, &timeRect);
             SDL_FreeSurface(timeSurface);
             SDL_DestroyTexture(timeTexture);
+
+            // Render the duration text
+            std::string durationText = formatTime(musicDuration);
+            SDL_Surface* durationSurface = TTF_RenderText_Solid(font, durationText.c_str(), textColor);
+            SDL_Texture* durationTexture = SDL_CreateTextureFromSurface(renderer, durationSurface);
+            int durationWidth = durationSurface->w;
+            int durationHeight = durationSurface->h;
+            int durationX = (WIDTH - durationWidth) / 2;    // Center horizontally
+            int durationY = (HEIGHT - durationHeight) / 2 + 50;  // Below the time text
+            SDL_Rect durationRect = { durationX, durationY, durationWidth, durationHeight };
+            SDL_RenderCopy(renderer, durationTexture, NULL, &durationRect);
+            SDL_FreeSurface(durationSurface);
+            SDL_DestroyTexture(durationTexture);
         }
 
         SDL_RenderPresent(renderer);
