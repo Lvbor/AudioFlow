@@ -231,6 +231,7 @@ int main(int argc, char *argv[])
 
                     if (filepath != nullptr)
                     {
+                        isMusicPaused = false;
                         if (music != nullptr)
                         {
                             Mix_FreeMusic(music);
