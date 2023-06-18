@@ -194,7 +194,7 @@ int main(int argc, char *argv[])
     }
 
     // Load the font
-    TTF_Font *font = TTF_OpenFont("font.ttf", 24);
+    TTF_Font *font = TTF_OpenFont("font.ttf", 22);
     if (font == nullptr)
     {
         std::cout << "Failed to load font: " << TTF_GetError() << std::endl;
@@ -351,8 +351,8 @@ int main(int argc, char *argv[])
         SDL_RenderFillRect(renderer, &buttonRect);
 
         // Render the text
-        SDL_Color textColor = {255, 255, 255, 255}; // White color
-        SDL_Surface *textSurface = TTF_RenderText_Solid(font, "Choose file", textColor);
+        SDL_Color textColor = {230, 230, 230, 230}; // White color
+        SDL_Surface *textSurface = TTF_RenderText_Solid(font, "CHOOSE FILE", textColor);
         SDL_Texture *textTexture = SDL_CreateTextureFromSurface(renderer, textSurface);
         int textWidth = textSurface->w;
         int textHeight = textSurface->h;
@@ -369,7 +369,8 @@ int main(int argc, char *argv[])
         SDL_RenderFillRect(renderer, &volumeSliderRect);
 
         // Render the volume text
-        SDL_Surface *volumeSurface = TTF_RenderText_Solid(font, "Volume", textColor);
+        SDL_Color purpleTextColor = {128, 0, 128, 255}; // White color
+        SDL_Surface *volumeSurface = TTF_RenderText_Solid(font, "VOLUME", purpleTextColor);
         SDL_Texture *volumeTexture = SDL_CreateTextureFromSurface(renderer, volumeSurface);
         int volumeWidth = volumeSurface->w;
         int volumeHeight = volumeSurface->h;
@@ -383,7 +384,7 @@ int main(int argc, char *argv[])
         // Calculate the position of the volume slider handle
         int sliderPosition = (currentVolume * volumeSliderRect.w) / MIX_MAX_VOLUME;
         SDL_Rect volumeSliderHandleRect = {volumeSliderRect.x + sliderPosition - 5, volumeSliderRect.y - 5, 10, 40};
-        SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255); // White color
+        SDL_SetRenderDrawColor(renderer, 230, 230, 230, 230); // White color
         SDL_RenderFillRect(renderer, &volumeSliderHandleRect);
 
         // Render the pause/resume button
@@ -392,7 +393,7 @@ int main(int argc, char *argv[])
         SDL_RenderFillRect(renderer, &pauseButtonRect);
 
         // Render the text on the pause/resume button
-        std::string pauseButtonText = isMusicPaused ? "Resume" : "Pause";
+        std::string pauseButtonText = isMusicPaused ? "RESUME" : "PAUSE";
         SDL_Surface *pauseButtonSurface = TTF_RenderText_Solid(font, pauseButtonText.c_str(), textColor);
         SDL_Texture *pauseButtonTexture = SDL_CreateTextureFromSurface(renderer, pauseButtonSurface);
         int pauseButtonWidth = pauseButtonSurface->w;
@@ -410,7 +411,7 @@ int main(int argc, char *argv[])
         SDL_RenderFillRect(renderer, &queueButtonRect);
 
         // Render the text on the Queue button
-        std::string queueButtonText = "Add to Queue";
+        std::string queueButtonText = "ADD TO QUEUE";
         SDL_Surface *queueButtonSurface = TTF_RenderText_Solid(font, queueButtonText.c_str(), textColor);
         SDL_Texture *queueButtonTexture = SDL_CreateTextureFromSurface(renderer, queueButtonSurface);
         int queueButtonWidth = queueButtonSurface->w;
