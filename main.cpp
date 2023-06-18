@@ -20,9 +20,9 @@ int pauseTime = 0;
 
 Mix_Music *music = nullptr;
 int musicDuration = 0;
-const char *albumTag = nullptr;
-const char *artistTag = nullptr;
-const char *titleTag = nullptr;
+std::string albumTag;
+std::string artistTag;
+std::string titleTag;
 
 bool isPointInRect(int x, int y, const SDL_Rect &rect)
 {
@@ -70,19 +70,19 @@ void playNextSong()
                 else
                 {
                     albumTag = Mix_GetMusicAlbumTag(music);
-                    if (albumTag == nullptr || strlen(albumTag) < 2)
+                    if (albumTag.c_str() == nullptr || strlen(albumTag.c_str()) < 2)
                     {
                         albumTag = "Unknown";
                     }
 
                     artistTag = Mix_GetMusicArtistTag(music);
-                    if (artistTag == nullptr || strlen(artistTag) < 2)
+                    if (artistTag.c_str() == nullptr || strlen(artistTag.c_str()) < 2)
                     {
                         artistTag = "Unknown";
                     }
 
                     titleTag = Mix_GetMusicTitle(music);
-                    if (titleTag == nullptr || strlen(titleTag) < 2)
+                    if (titleTag.c_str() == nullptr || strlen(titleTag.c_str()) < 2)
                     {
                         titleTag = "Unknown";
                     }
@@ -246,19 +246,19 @@ int main(int argc, char *argv[])
                         else
                         {
                             albumTag = Mix_GetMusicAlbumTag(music);
-                            if (albumTag == nullptr || strlen(albumTag) < 2)
+                            if (albumTag.c_str() == nullptr || strlen(albumTag.c_str()) < 2)
                             {
                                 albumTag = "Unknown";
                             }
 
                             artistTag = Mix_GetMusicArtistTag(music);
-                            if (artistTag == nullptr || strlen(artistTag) < 2)
+                            if (artistTag.c_str() == nullptr || strlen(artistTag.c_str()) < 2)
                             {
                                 artistTag = "Unknown";
                             }
 
                             titleTag = Mix_GetMusicTitle(music);
-                            if (titleTag == nullptr || strlen(titleTag) < 2)
+                            if (titleTag.c_str() == nullptr || strlen(titleTag.c_str()) < 2)
                             {
                                 titleTag = "Unknown";
                             }
@@ -442,7 +442,7 @@ int main(int argc, char *argv[])
             SDL_DestroyTexture(progressTexture);
 
             // Render the title tag
-            SDL_Surface *titleSurface = TTF_RenderText_Solid(font, titleTag, textColor);
+            SDL_Surface *titleSurface = TTF_RenderText_Solid(font, titleTag.substr(0, 45).c_str(), textColor);
             SDL_Texture *titleTexture = SDL_CreateTextureFromSurface(renderer, titleSurface);
             int titleWidth = titleSurface->w;
             int titleHeight = titleSurface->h;
@@ -454,7 +454,7 @@ int main(int argc, char *argv[])
             SDL_DestroyTexture(titleTexture);
 
             // Render the artist tag
-            SDL_Surface *artistSurface = TTF_RenderText_Solid(font, artistTag, textColor);
+            SDL_Surface *artistSurface = TTF_RenderText_Solid(font, artistTag.substr(0, 45).c_str(), textColor);
             SDL_Texture *artistTexture = SDL_CreateTextureFromSurface(renderer, artistSurface);
             int artistWidth = artistSurface->w;
             int artistHeight = artistSurface->h;
@@ -466,7 +466,7 @@ int main(int argc, char *argv[])
             SDL_DestroyTexture(artistTexture);
 
             // Render the album tag
-            SDL_Surface *albumSurface = TTF_RenderText_Solid(font, albumTag, textColor);
+            SDL_Surface *albumSurface = TTF_RenderText_Solid(font, albumTag.substr(0, 45).c_str(), textColor);
             SDL_Texture *albumTexture = SDL_CreateTextureFromSurface(renderer, albumSurface);
             int albumWidth = albumSurface->w;
             int albumHeight = albumSurface->h;
@@ -478,7 +478,7 @@ int main(int argc, char *argv[])
             SDL_DestroyTexture(albumTexture);
 
             // Render the filename text
-            SDL_Surface *filenameSurface = TTF_RenderText_Solid(font, currentFilename.c_str(), textColor);
+            SDL_Surface *filenameSurface = TTF_RenderText_Solid(font, currentFilename.substr(0, 45).c_str(), textColor);
             SDL_Texture *filenameTexture = SDL_CreateTextureFromSurface(renderer, filenameSurface);
             int filenameWidth = filenameSurface->w;
             int filenameHeight = filenameSurface->h;
