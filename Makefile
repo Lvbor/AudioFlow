@@ -3,7 +3,7 @@ CFLAGS = -Isrc/include
 LDFLAGS = -Lsrc/lib
 LIBS = -lmingw32 -lSDL2main -lSDL2 -lSDL2_image -lSDL2_mixer -ltinyfiledialogs -lole32 -lcomdlg32 -lSDL2_ttf
 
-TARGET = main
+TARGET = AudioFlow
 SRCS = main.cpp
 
 OBJS = $(SRCS:.cpp=.o)
