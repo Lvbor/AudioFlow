@@ -2,22 +2,27 @@
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_mixer.h>
 #include <SDL2/SDL_ttf.h>
-#include <SDL2/SDL_image.h> 
+#include <SDL2/SDL_image.h>
 #include <cstdlib>
 #include <string>
 #include <queue>
+#include <filesystem>
 #include <Tiny_File_Dialogs/tinyfiledialogs.h>
 
 const int WIDTH = 1920, HEIGHT = 1080;
 std::queue<std::string> songQueue;
+std::string currentFilename;
 bool quit = false;
 bool isMusicPlaying = false;
 bool isMusicPaused = false;
 int startTime = 0;
 int pauseTime = 0;
 
-Mix_Music *music = nullptr; 
-int musicDuration = 0;      
+Mix_Music *music = nullptr;
+int musicDuration = 0;
+const char *albumTag = nullptr;
+const char *artistTag = nullptr;
+const char *titleTag = nullptr;
 
 bool isPointInRect(int x, int y, const SDL_Rect &rect)
 {
@@ -51,7 +56,7 @@ void playNextSong()
         }
         else
         {
-            musicDuration = Mix_MusicDuration(music); 
+            musicDuration = Mix_MusicDuration(music);
             if (musicDuration <= 0)
             {
                 std::cout << "Failed to get music duration: " << Mix_GetError() << std::endl;
@@ -64,6 +69,25 @@ void playNextSong()
                 }
                 else
                 {
+                    albumTag = Mix_GetMusicAlbumTag(music);
+                    if (albumTag == nullptr || strlen(albumTag) < 2)
+                    {
+                        albumTag = "Unknown";
+                    }
+
+                    artistTag = Mix_GetMusicArtistTag(music);
+                    if (artistTag == nullptr || strlen(artistTag) < 2)
+                    {
+                        artistTag = "Unknown";
+                    }
+
+                    titleTag = Mix_GetMusicTitle(music);
+                    if (titleTag == nullptr || strlen(titleTag) < 2)
+                    {
+                        titleTag = "Unknown";
+                    }
+
+                    currentFilename = std::filesystem::path(filepath).filename().string(); // Extract the filename
                     isMusicPlaying = true;
                     startTime = SDL_GetTicks() / 1000;
                 }
@@ -82,7 +106,6 @@ void addToQueue(const char *filepath)
         playNextSong();
     }
 }
-
 
 int main(int argc, char *argv[])
 {
@@ -200,7 +223,7 @@ int main(int argc, char *argv[])
                 int mouseY = windowEvent.button.y;
 
                 // Check if the mouse click is inside the button area
-                SDL_Rect buttonRect = {(WIDTH - 200) / 2, HEIGHT - 150, 200, 50};
+                SDL_Rect buttonRect = {(WIDTH - 200) / 2, HEIGHT - 100, 200, 50};
                 if (isPointInRect(mouseX, mouseY, buttonRect))
                 {
                     // Open file dialog to choose a music file
@@ -221,7 +244,25 @@ int main(int argc, char *argv[])
                         }
                         else
                         {
-                            musicDuration = Mix_MusicDuration(music); // Get the duration of the music file
+                            albumTag = Mix_GetMusicAlbumTag(music);
+                            if (albumTag == nullptr || strlen(albumTag) < 2)
+                            {
+                                albumTag = "Unknown";
+                            }
+
+                            artistTag = Mix_GetMusicArtistTag(music);
+                            if (artistTag == nullptr || strlen(artistTag) < 2)
+                            {
+                                artistTag = "Unknown";
+                            }
+
+                            titleTag = Mix_GetMusicTitle(music);
+                            if (titleTag == nullptr || strlen(titleTag) < 2)
+                            {
+                                titleTag = "Unknown";
+                            }
+                            musicDuration = Mix_MusicDuration(music);                              // Get the duration of the music file
+                            currentFilename = std::filesystem::path(filepath).filename().string(); // Extract the filename
                             if (musicDuration <= 0)
                             {
                                 std::cout << "Failed to get music duration: " << Mix_GetError() << std::endl;
@@ -244,7 +285,7 @@ int main(int argc, char *argv[])
                     }
                 }
 
-                SDL_Rect pauseButtonRect = {(WIDTH - 200) / 2, (HEIGHT - 250), 200, 50};
+                SDL_Rect pauseButtonRect = {(WIDTH - 200) / 2, (HEIGHT - 200), 200, 50};
                 if (isPointInRect(mouseX, mouseY, pauseButtonRect))
                 {
                     if (isMusicPlaying)
@@ -270,7 +311,7 @@ int main(int argc, char *argv[])
                     }
                 }
                 // Check if the mouse click is inside the volume slider area
-                SDL_Rect volumeSliderRect = {(WIDTH - 200) / 2, HEIGHT - 450, 200, 20};
+                SDL_Rect volumeSliderRect = {(WIDTH - 200) / 2, HEIGHT - 400, 200, 20};
                 if (isPointInRect(mouseX, mouseY, volumeSliderRect))
                 {
                     // Calculate the new volume based on the mouse position within the slider
@@ -282,7 +323,7 @@ int main(int argc, char *argv[])
                     Mix_VolumeMusic(currentVolume);
                 }
 
-                SDL_Rect queueButtonRect = {(WIDTH - 200) / 2, HEIGHT - 350, 200, 50};
+                SDL_Rect queueButtonRect = {(WIDTH - 200) / 2, HEIGHT - 300, 200, 50};
                 if (isPointInRect(mouseX, mouseY, queueButtonRect))
                 {
                     // Open file dialog to choose a music file
@@ -291,7 +332,7 @@ int main(int argc, char *argv[])
                     if (filepath != nullptr)
                     {
                         addToQueue(filepath);
-                        SDL_free((void *)filepath);
+                        // Don't use SDL_free for filepath, as it wasn't allocated by SDL_malloc
                     }
                 }
             }
@@ -304,7 +345,7 @@ int main(int argc, char *argv[])
         SDL_RenderCopy(renderer, backgroundTexture, NULL, NULL);
 
         // Render the button
-        SDL_Rect buttonRect = {(WIDTH - 200) / 2, HEIGHT - 150, 200, 50};
+        SDL_Rect buttonRect = {(WIDTH - 200) / 2, HEIGHT - 100, 200, 50};
         SDL_SetRenderDrawColor(renderer, 128, 0, 128, 255); // Purple color
         SDL_RenderFillRect(renderer, &buttonRect);
 
@@ -322,7 +363,7 @@ int main(int argc, char *argv[])
         SDL_DestroyTexture(textTexture);
 
         // Render the volume slider
-        SDL_Rect volumeSliderRect = {(WIDTH - 200) / 2, HEIGHT - 450, 200, 30};
+        SDL_Rect volumeSliderRect = {(WIDTH - 200) / 2, HEIGHT - 400, 200, 30};
         SDL_SetRenderDrawColor(renderer, 128, 0, 128, 255); // Purple color
         SDL_RenderFillRect(renderer, &volumeSliderRect);
 
@@ -345,7 +386,7 @@ int main(int argc, char *argv[])
         SDL_RenderFillRect(renderer, &volumeSliderHandleRect);
 
         // Render the pause/resume button
-        SDL_Rect pauseButtonRect = {(WIDTH - 200) / 2, (HEIGHT - 250), 200, 50};
+        SDL_Rect pauseButtonRect = {(WIDTH - 200) / 2, (HEIGHT - 200), 200, 50};
         SDL_SetRenderDrawColor(renderer, 128, 0, 128, 255); // Purple color
         SDL_RenderFillRect(renderer, &pauseButtonRect);
 
@@ -363,7 +404,7 @@ int main(int argc, char *argv[])
         SDL_DestroyTexture(pauseButtonTexture);
 
         // Render the Queue button
-        SDL_Rect queueButtonRect = {(WIDTH - 200) / 2, HEIGHT - 350, 200, 50};
+        SDL_Rect queueButtonRect = {(WIDTH - 200) / 2, HEIGHT - 300, 200, 50};
         SDL_SetRenderDrawColor(renderer, 128, 0, 128, 255); // Purple color
         SDL_RenderFillRect(renderer, &queueButtonRect);
 
@@ -386,18 +427,67 @@ int main(int argc, char *argv[])
         if (isMusicPlaying && Mix_PlayingMusic() && !isMusicPaused)
         {
             int currentTime = SDL_GetTicks() / 1000 - startTime;
-            std::string progressText = "Time: " + formatTime(currentTime) + " / " + formatTime(musicDuration);
+            std::string progressText = formatTime(currentTime) + " / " + formatTime(musicDuration);
 
             SDL_Surface *progressSurface = TTF_RenderText_Solid(font, progressText.c_str(), textColor);
             SDL_Texture *progressTexture = SDL_CreateTextureFromSurface(renderer, progressSurface);
             int progressWidth = progressSurface->w;
             int progressHeight = progressSurface->h;
             int progressX = (WIDTH - progressWidth) / 2; // Center horizontally
-            int progressY = 50;                          // Position at the top
+            int progressY = 85;                          
             SDL_Rect progressRect = {progressX, progressY, progressWidth, progressHeight};
             SDL_RenderCopy(renderer, progressTexture, NULL, &progressRect);
             SDL_FreeSurface(progressSurface);
             SDL_DestroyTexture(progressTexture);
+
+            // Render the title tag
+            SDL_Surface *titleSurface = TTF_RenderText_Solid(font, titleTag, textColor);
+            SDL_Texture *titleTexture = SDL_CreateTextureFromSurface(renderer, titleSurface);
+            int titleWidth = titleSurface->w;
+            int titleHeight = titleSurface->h;
+            int titleX = (WIDTH - titleWidth) / 2;     // Center horizontally
+            int titleY = 205; 
+            SDL_Rect titleRect = {titleX, titleY, titleWidth, titleHeight};
+            SDL_RenderCopy(renderer, titleTexture, NULL, &titleRect);
+            SDL_FreeSurface(titleSurface);
+            SDL_DestroyTexture(titleTexture);
+
+            // Render the artist tag
+            SDL_Surface *artistSurface = TTF_RenderText_Solid(font, artistTag, textColor);
+            SDL_Texture *artistTexture = SDL_CreateTextureFromSurface(renderer, artistSurface);
+            int artistWidth = artistSurface->w;
+            int artistHeight = artistSurface->h;
+            int artistX = (WIDTH - artistWidth) / 2;     // Center horizontally
+            int artistY = 325; 
+            SDL_Rect artistRect = {artistX, artistY, artistWidth, artistHeight};
+            SDL_RenderCopy(renderer, artistTexture, NULL, &artistRect);
+            SDL_FreeSurface(artistSurface);
+            SDL_DestroyTexture(artistTexture);
+
+            // Render the album tag
+            SDL_Surface *albumSurface = TTF_RenderText_Solid(font, albumTag, textColor);
+            SDL_Texture *albumTexture = SDL_CreateTextureFromSurface(renderer, albumSurface);
+            int albumWidth = albumSurface->w;
+            int albumHeight = albumSurface->h;
+            int albumX = (WIDTH - albumWidth) / 2;     // Center horizontally
+            int albumY = 445; 
+            SDL_Rect albumRect = {albumX, albumY, albumWidth, albumHeight};
+            SDL_RenderCopy(renderer, albumTexture, NULL, &albumRect);
+            SDL_FreeSurface(albumSurface);
+            SDL_DestroyTexture(albumTexture);
+
+            // Render the filename text
+            SDL_Surface *filenameSurface = TTF_RenderText_Solid(font, currentFilename.c_str(), textColor);
+            SDL_Texture *filenameTexture = SDL_CreateTextureFromSurface(renderer, filenameSurface);
+            int filenameWidth = filenameSurface->w;
+            int filenameHeight = filenameSurface->h;
+            int filenameX = (WIDTH - filenameWidth) / 2;     // Center horizontally
+            int filenameY = 565; 
+            SDL_Rect filenameRect = {filenameX, filenameY, filenameWidth, filenameHeight};
+            SDL_RenderCopy(renderer, filenameTexture, NULL, &filenameRect);
+            SDL_FreeSurface(filenameSurface);
+            SDL_DestroyTexture(filenameTexture);
+
         }
 
         if (isMusicPlaying && !Mix_PlayingMusic() && !isMusicPaused)
