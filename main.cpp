@@ -2,12 +2,22 @@
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_mixer.h>
 #include <SDL2/SDL_ttf.h>
-#include <SDL2/SDL_image.h> // Include the SDL2_image header
+#include <SDL2/SDL_image.h> 
 #include <cstdlib>
 #include <string>
+#include <queue>
 #include <Tiny_File_Dialogs/tinyfiledialogs.h>
 
 const int WIDTH = 1920, HEIGHT = 1080;
+std::queue<std::string> songQueue;
+bool quit = false;
+bool isMusicPlaying = false;
+bool isMusicPaused = false;
+int startTime = 0;
+int pauseTime = 0;
+
+Mix_Music *music = nullptr; 
+int musicDuration = 0;      
 
 bool isPointInRect(int x, int y, const SDL_Rect &rect)
 {
@@ -20,6 +30,59 @@ std::string formatTime(int seconds)
     int remainingSeconds = seconds % 60;
     return std::to_string(minutes) + ":" + (remainingSeconds < 10 ? "0" : "") + std::to_string(remainingSeconds);
 }
+
+void playNextSong()
+{
+    if (!songQueue.empty())
+    {
+        std::string filepath = songQueue.front();
+        songQueue.pop();
+
+        if (music != nullptr)
+        {
+            Mix_FreeMusic(music);
+            music = nullptr;
+        }
+
+        music = Mix_LoadMUS(filepath.c_str());
+        if (music == nullptr)
+        {
+            std::cout << "Failed to load music: " << Mix_GetError() << std::endl;
+        }
+        else
+        {
+            musicDuration = Mix_MusicDuration(music); 
+            if (musicDuration <= 0)
+            {
+                std::cout << "Failed to get music duration: " << Mix_GetError() << std::endl;
+            }
+            else
+            {
+                if (Mix_PlayMusic(music, 0) == -1)
+                {
+                    std::cout << "Failed to play music: " << Mix_GetError() << std::endl;
+                }
+                else
+                {
+                    isMusicPlaying = true;
+                    startTime = SDL_GetTicks() / 1000;
+                }
+            }
+        }
+    }
+}
+
+void addToQueue(const char *filepath)
+{
+    std::string songPath(filepath);
+    songQueue.push(songPath);
+
+    if (!isMusicPlaying)
+    {
+        playNextSong();
+    }
+}
+
 
 int main(int argc, char *argv[])
 {
@@ -121,17 +184,7 @@ int main(int argc, char *argv[])
         return 1;
     }
 
-    int currentVolume = MIX_MAX_VOLUME / 2; // Set initial volume to half of the maximum volume
-
-    bool quit = false;
-    bool isMusicPlaying = false;
-    bool isMusicPaused = false;
-    int startTime = 0;
-    int pauseTime = 0;
-
-    Mix_Music *music = nullptr; // Declare music variable
-    int musicDuration = 0;      // Declare musicDuration variable
-
+    int currentVolume = MIX_MAX_VOLUME / 4; // Set initial volume to 25%
     while (!quit)
     {
         while (SDL_PollEvent(&windowEvent))
@@ -217,7 +270,7 @@ int main(int argc, char *argv[])
                     }
                 }
                 // Check if the mouse click is inside the volume slider area
-                SDL_Rect volumeSliderRect = {(WIDTH - 200) / 2, HEIGHT - 350, 200, 20};
+                SDL_Rect volumeSliderRect = {(WIDTH - 200) / 2, HEIGHT - 450, 200, 20};
                 if (isPointInRect(mouseX, mouseY, volumeSliderRect))
                 {
                     // Calculate the new volume based on the mouse position within the slider
@@ -227,6 +280,19 @@ int main(int argc, char *argv[])
 
                     // Set the new volume
                     Mix_VolumeMusic(currentVolume);
+                }
+
+                SDL_Rect queueButtonRect = {(WIDTH - 200) / 2, HEIGHT - 350, 200, 50};
+                if (isPointInRect(mouseX, mouseY, queueButtonRect))
+                {
+                    // Open file dialog to choose a music file
+                    const char *filepath = tinyfd_openFileDialog("Choose Music File", "", 0, nullptr, nullptr, 0);
+
+                    if (filepath != nullptr)
+                    {
+                        addToQueue(filepath);
+                        SDL_free((void *)filepath);
+                    }
                 }
             }
         }
@@ -256,7 +322,7 @@ int main(int argc, char *argv[])
         SDL_DestroyTexture(textTexture);
 
         // Render the volume slider
-        SDL_Rect volumeSliderRect = {(WIDTH - 200) / 2, HEIGHT - 350, 200, 30};
+        SDL_Rect volumeSliderRect = {(WIDTH - 200) / 2, HEIGHT - 450, 200, 30};
         SDL_SetRenderDrawColor(renderer, 128, 0, 128, 255); // Purple color
         SDL_RenderFillRect(renderer, &volumeSliderRect);
 
@@ -296,6 +362,26 @@ int main(int argc, char *argv[])
         SDL_FreeSurface(pauseButtonSurface);
         SDL_DestroyTexture(pauseButtonTexture);
 
+        // Render the Queue button
+        SDL_Rect queueButtonRect = {(WIDTH - 200) / 2, HEIGHT - 350, 200, 50};
+        SDL_SetRenderDrawColor(renderer, 128, 0, 128, 255); // Purple color
+        SDL_RenderFillRect(renderer, &queueButtonRect);
+
+        // Render the text on the Queue button
+        std::string queueButtonText = "Add to Queue";
+        SDL_Surface *queueButtonSurface = TTF_RenderText_Solid(font, queueButtonText.c_str(), textColor);
+        SDL_Texture *queueButtonTexture = SDL_CreateTextureFromSurface(renderer, queueButtonSurface);
+        int queueButtonWidth = queueButtonSurface->w;
+        int queueButtonHeight = queueButtonSurface->h;
+        int queueButtonX = queueButtonRect.x + (queueButtonRect.w - queueButtonWidth) / 2;  // Center horizontally
+        int queueButtonY = queueButtonRect.y + (queueButtonRect.h - queueButtonHeight) / 2; // Center vertically
+        SDL_Rect queueButtonRenderRect = {queueButtonX, queueButtonY, queueButtonWidth, queueButtonHeight};
+        SDL_RenderCopy(renderer, queueButtonTexture, nullptr, &queueButtonRenderRect);
+
+        // Cleanup
+        SDL_FreeSurface(queueButtonSurface);
+        SDL_DestroyTexture(queueButtonTexture);
+
         // Render the music progress
         if (isMusicPlaying && Mix_PlayingMusic() && !isMusicPaused)
         {
@@ -312,6 +398,11 @@ int main(int argc, char *argv[])
             SDL_RenderCopy(renderer, progressTexture, NULL, &progressRect);
             SDL_FreeSurface(progressSurface);
             SDL_DestroyTexture(progressTexture);
+        }
+
+        if (isMusicPlaying && !Mix_PlayingMusic() && !isMusicPaused)
+        {
+            playNextSong();
         }
 
         SDL_RenderPresent(renderer);
