@@ -207,7 +207,7 @@ int main(int argc, char *argv[])
         return 1;
     }
 
-    int currentVolume = MIX_MAX_VOLUME / 4; // Set initial volume to 25%
+    int currentVolume = MIX_MAX_VOLUME / 2; // Set initial volume to 50%
     while (!quit)
     {
         while (SDL_PollEvent(&windowEvent))
